@@ -23,7 +23,7 @@
 + Stats info, CPU/Memory/Requests/Responses and so on.
 + Latency monitor.
 
-## Build
+## Generic Build Instructions
 
 Predixy can be compiled and used on Linux, OSX, BSD, Windows([Cygwin](http://www.cygwin.com/)). Requires C++11 compiler.
 
@@ -48,13 +48,13 @@ For examples:
     $ make MT=false
     $ make debug MT=false TS=true
 
-## Install
+## Generic Install Instructions
 
 Just copy src/predixy to the install path
 
     $ cp src/predixy /path/to/bin
 
-## Configuration
+## Generic Configuration Instructions
 
 See below files:
 + predixy.conf, basic config, will refrence below config files.
@@ -116,6 +116,83 @@ Show latency monitors by server address and latency name
 Reset all stats and latency monitors, require admin permission.
 
     redis> CONFIG ResetStat
+
+## Instacart Local Development Instructions
+
+### Prerequisites
+- Local Redis instance running on default port (6379)
+- C++11 compiler
+- Make
+
+### Install Redis Locally 
+
+1. Use Homebrew to install Redis in a single instance mode with cluster mode disabled to test your changes locally
+```bash
+$ brew install redis
+```
+
+2. Start Redis
+```bash
+$ brew services start redis
+```
+
+3. Verify your local Redis is running:
+```bash
+$ redis-cli -h 127.0.0.1 -p 6379 ping
+```
+Should return "PONG"
+
+```bash
+$ redis-cli -h 127.0.0.1 -p 6379 info
+```
+
+Will return info about the Redis instance, if required for debugging
+
+Note, logs for Redis installed by Brew will appear in `/opt/homebrew/var/log/redis.log` by default. 
+
+### Building and Running Predixy Locally
+
+1. Compile Predixy:
+```bash
+$ make
+```
+This will create object files and the executable in the `src` directory.
+
+2. Verify your local Redis is running:
+```bash
+$ redis-cli -h 127.0.0.1 -p 6379 ping
+```
+Should return "PONG"
+
+3. Start Predixy using the local configuration:
+```bash
+$ src/predixy conf/predixy_local.conf
+```
+You should see output indicating Predixy is listening on 127.0.0.1:7617
+
+4. Test the connection through Predixy:
+```bash
+# Basic connectivity test
+$ redis-cli -h 127.0.0.1 -p 7617 ping
+
+# Check Predixy status
+$ redis-cli -h 127.0.0.1 -p 7617 info
+
+# Test read/write operations
+$ redis-cli -h 127.0.0.1 -p 7617 set test "Hello via Predixy"
+$ redis-cli -h 127.0.0.1 -p 7617 get test
+```
+
+5. To stop Predixy:
+```bash
+$ pkill -f predixy
+```
+
+### Notes
+- Predixy will be listening on port 7617 while your Redis instance remains on 6379
+- The configuration in `predixy_local.conf` is set up for a single local Redis instance
+- Build artifacts (*.o files) are ignored by git but can be safely kept for development
+- Logs will appear in stdout by default
 
 ## Benchmark
 
