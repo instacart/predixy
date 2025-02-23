@@ -210,3 +210,77 @@ All rights reserved.
 License under BSD 3-clause "New" or "Revised" License
 
 WeChat:cppfan ![wechat](https://github.com/joyieldInc/predixy/blob/master/doc/wechat-cppfan.jpeg)
+
+## Local Redis Cluster Setup and Testing
+
+### Setting up Redis Cluster Locally
+
+1. Create directories for each Redis node (we'll use 3 nodes):
+```bash
+$ mkdir -p redis-cluster/{7000,7001,7002}
+```
+
+2. Create Redis configuration for each node. First for port 7000:
+```bash
+$ cat > redis-cluster/7000/redis.conf << EOL
+port 7000
+cluster-enabled yes
+cluster-config-file nodes-7000.conf
+cluster-node-timeout 5000
+appendonly yes
+dir ./
+bind 127.0.0.1
+daemonize no
+EOL
+```
+
+3. Copy and adjust configuration for other nodes:
+```bash
+$ cp redis-cluster/7000/redis.conf redis-cluster/7001/redis.conf
+$ cp redis-cluster/7000/redis.conf redis-cluster/7002/redis.conf
+$ sed -i '' 's/7000/7001/g' redis-cluster/7001/redis.conf
+$ sed -i '' 's/7000/7002/g' redis-cluster/7002/redis.conf
+```
+
+4. Start each Redis instance (in separate terminal windows):
+```bash
+$ redis-server redis-cluster/7000/redis.conf
+$ redis-server redis-cluster/7001/redis.conf
+$ redis-server redis-cluster/7002/redis.conf
+```
+
+5. Create the cluster:
+```bash
+$ redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 --cluster-replicas 0
+```
+Type 'yes' when prompted to accept the configuration.
+
+6. Verify cluster status:
+```bash
+$ redis-cli -p 7000 cluster nodes
+```
+
+### Testing with Predixy
+
+1. Start Predixy with the cluster configuration:
+```bash
+$ src/predixy conf/predixy_cluster.conf
+```
+
+2. Test the cluster setup through Predixy:
+```bash
+# Basic connectivity test
+$ redis-cli -p 7617 set test "Hello Cluster"
+$ redis-cli -p 7617 get test
+
+# Check Predixy cluster status
+$ redis-cli -p 7617 info
+```
+
+### Cleanup
+When done testing, you can:
+1. Stop Predixy (Ctrl+C or `pkill predixy`)
+2. Stop each Redis instance (Ctrl+C in each terminal)
+3. Remove cluster files: `rm -rf redis-cluster`
+
+Note: The cluster setup distributes keys across all nodes using hash slots. Each node in this setup handles approximately 5461 hash slots (16384/3 slots per node).
