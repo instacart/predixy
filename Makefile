@@ -1,4 +1,3 @@
-
 .PHONY : default debug clean
 
 make = make
@@ -10,10 +9,20 @@ else ifeq ($(plt), OpenBSD)
 endif
 
 default:
+ifeq ($(plt), Darwin)
+	@$(make) -C src -f Mac.mk
+	@$(make) -C src -f Makefile predixy
+else
 	@$(make) -C src -f Makefile
+endif
 
 debug:
-	@$(make) -C src -f Makefile debug
+ifeq ($(plt), Darwin)
+	@$(make) -C src -f Mac.mk
+	@$(make) -C src -f Makefile LVL=-g predixy
+else
+	@$(make) -C src -f Makefile LVL=-g
+endif
 
 clean:
 	@$(make) -C src -f Makefile clean

@@ -22,7 +22,10 @@ ifeq ($(EV), auto)
 	else ifeq ($(plt), Darwin)
 		EV = kqueue
 		Opts += -D_PREDIXY_BACKTRACE_
-		LDLIBCPP = -static-libstdc++
+		CXX = c++
+		CFLAGS += -stdlib=libc++
+		LDLIBCPP = 
+		INCFLAGS += -I/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk/usr/include/c++/v1 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 	else ifeq ($(plt), FreeBSD)
 		EV = kqueue
 		Opts += -D_PREDIXY_BACKTRACE_
@@ -102,6 +105,10 @@ default: $(target)
 $(target): $(objs)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+# Special target for macOS to use pre-compiled objects
+predixy: 
+	$(CXX) $(CFLAGS) -o $(target) *.o $(LDFLAGS)
+
 debug:
 	@make LVL=-g
 
@@ -110,5 +117,5 @@ clean:
 	@echo Done.
 
 %.o : %.cpp
-	$(CXX) $(CFLAGS) -c $^ $(INCFLAGS)
+	$(CXX) $(CFLAGS) $(INCFLAGS) -c $^
 
