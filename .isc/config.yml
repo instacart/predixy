@@ -1,2 +1,7 @@
 # This file marks the directory as buildable by Buildkite
 # It can be empty, but must exist 
+
+# Configuration for Buildkite
+default_branch: master
+dockerfile: Dockerfile  # Pointing to the Dockerfile in the project root
+build_arm: true         # Support ARM builds (M1/M2 Mac compatibility) 
