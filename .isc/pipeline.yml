@@ -8,21 +8,66 @@ steps:
       echo "~~~ Building Docker image"
       docker build -t predixy:${BUILDKITE_BUILD_NUMBER} .
       echo "~~~ Container built successfully!"
+      
+      # Save container info for verification
+      docker inspect predixy:${BUILDKITE_BUILD_NUMBER} > container_info.json
+      buildkite-agent artifact upload container_info.json
+    plugins:
+      - docker#v3.12.0:
+          propagate-aws-auth-tokens: true
 
-  - label: "🚀 Run Docker Container"
-    key: run_container
+  - label: "✅ Verify Container"
+    key: verify_container
     depends_on: build_container
     command: |
-      echo "~~~ Running Docker container"
-      # Run the container in detached mode and name it
-      docker run -d --name predixy-test predixy:${BUILDKITE_BUILD_NUMBER}
-      # Wait a moment for container to start
+      echo "~~~ Verifying Docker container"
+      # Start the container to verify it runs correctly
+      docker run -d --name predixy-verify predixy:${BUILDKITE_BUILD_NUMBER}
+      
+      # Wait briefly for startup
       sleep 2
-      # Check if container is running
-      docker ps | grep predixy-test
-      # Get container logs
-      docker logs predixy-test
-      # Clean up the container
-      docker stop predixy-test
-      docker rm predixy-test
-      echo "~~~ Container test complete!" 
+      
+      # Check container is running properly
+      if docker ps | grep predixy-verify; then
+        echo "✓ Container is running properly"
+      else
+        echo "✗ Container failed to start properly"
+        docker logs predixy-verify
+        exit 1
+      fi
+      
+      # Show container logs for verification
+      echo "~~~ Container logs:"
+      docker logs predixy-verify
+      
+      # Clean up
+      docker stop predixy-verify
+      docker rm predixy-verify
+      
+      echo "~~~ Container verification complete!"
+    plugins:
+      - docker#v3.12.0:
+          propagate-aws-auth-tokens: true
+
+  # Optional: Push to repository if on master/main branch
+  - label: "📦 Push Container"
+    key: push_container
+    depends_on: verify_container
+    if: build.branch == "master" || build.branch == "main"
+    command: |
+      echo "~~~ Pushing container to ECR"
+      # Tag the container for ECR
+      docker tag predixy:${BUILDKITE_BUILD_NUMBER} 143926955519.dkr.ecr.us-east-1.amazonaws.com/predixy:latest
+      docker tag predixy:${BUILDKITE_BUILD_NUMBER} 143926955519.dkr.ecr.us-east-1.amazonaws.com/predixy:${BUILDKITE_BUILD_NUMBER}
+      
+      # Login to ECR
+      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 143926955519.dkr.ecr.us-east-1.amazonaws.com
+      
+      # Push images
+      docker push 143926955519.dkr.ecr.us-east-1.amazonaws.com/predixy:latest
+      docker push 143926955519.dkr.ecr.us-east-1.amazonaws.com/predixy:${BUILDKITE_BUILD_NUMBER}
+      
+      echo "~~~ Container pushed successfully!"
+    plugins:
+      - docker#v3.12.0:
+          propagate-aws-auth-tokens: true 
