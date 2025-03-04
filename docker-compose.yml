@@ -1,0 +1,22 @@
+services:
+  predixy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: predixy
+    ports:
+      - "7617:7617"
+    volumes:
+      # Mount the Docker-specific configuration
+      - ./conf/predixy_docker.conf:/etc/predixy/predixy.conf
+      - ./conf/latency.conf:/etc/predixy/latency.conf
+    networks:
+      - predixy-net
+    restart: unless-stopped
+    # This allows the container to access your host machine's services
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  predixy-net:
+    driver: bridge 
