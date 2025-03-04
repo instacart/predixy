@@ -1,0 +1,28 @@
+agents:
+  queue: 8192mb-8192cpu  # Using a queue with enough resources for Docker builds
+
+steps:
+  - label: "🐳 Build Docker Container"
+    key: build_container
+    command: |
+      echo "~~~ Building Docker image"
+      docker build -t predixy:${BUILDKITE_BUILD_NUMBER} .
+      echo "~~~ Container built successfully!"
+
+  - label: "🚀 Run Docker Container"
+    key: run_container
+    depends_on: build_container
+    command: |
+      echo "~~~ Running Docker container"
+      # Run the container in detached mode and name it
+      docker run -d --name predixy-test predixy:${BUILDKITE_BUILD_NUMBER}
+      # Wait a moment for container to start
+      sleep 2
+      # Check if container is running
+      docker ps | grep predixy-test
+      # Get container logs
+      docker logs predixy-test
+      # Clean up the container
+      docker stop predixy-test
+      docker rm predixy-test
+      echo "~~~ Container test complete!" 
