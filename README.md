@@ -187,7 +187,7 @@ $ redis-cli -h 127.0.0.1 -p 7617 get test
 ```bash
 $ pkill -f predixy
 ```
-## Instacart Local Development Instructions (Cluster mode disabled)
+## Instacart Local Development Instructions (Cluster mode enabled)
 
 ### Setting up Redis Cluster Locally
 
